@@ -1,9 +1,8 @@
 # Sistema de Matrículas
 
-> Feito por Letícia Azevedo e Murilo Freitas
+> Feito por Letícia Figueiredo e Murilo Freitas
 
 Projeto do Laboratório 2 — Desenvolvimento de Software (PUC Minas).  
-**React + TypeScript** (Vite). A implementação das funcionalidades **ainda não foi iniciada**.
 
 ## Documentação (Lab01S01)
 
@@ -14,7 +13,3 @@ Modelo de análise:
 
 ## Como executar (quando a implementação começar)
 
-```bash
-npm install
-npm run dev
-```
