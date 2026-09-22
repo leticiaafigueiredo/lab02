@@ -1,23 +1,55 @@
 package br.pucminas.matriculas.modelo;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "disciplinas")
 public class Disciplina {
     public static final int MINIMO_ALUNOS = 3;
     public static final int MAXIMO_ALUNOS = 60;
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
+
+    @Column(nullable = false, unique = true)
     private String codigo;
+
+    @Column(nullable = false)
     private String nome;
-    private String cursoId;
-    private String professorId;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "curso_id")
+    @JsonIgnoreProperties("disciplinas")
+    private Curso curso;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "professor_id")
+    private Professor professor;
 
     public Disciplina() {
     }
 
-    public Disciplina(String id, String codigo, String nome, String cursoId) {
+    public Disciplina(String codigo, String nome, Curso curso) {
+        this.codigo = codigo;
+        this.nome = nome;
+        this.curso = curso;
+    }
+
+    public Disciplina(String codigo, String nome, Curso curso, Professor professor) {
+        this.codigo = codigo;
+        this.nome = nome;
+        this.curso = curso;
+        this.professor = professor;
+    }
+
+    public Disciplina(String id, String codigo, String nome, Curso curso, Professor professor) {
         this.id = id;
         this.codigo = codigo;
         this.nome = nome;
-        this.cursoId = cursoId;
+        this.curso = curso;
+        this.professor = professor;
     }
 
     public String getId() {
@@ -44,20 +76,20 @@ public class Disciplina {
         this.nome = nome;
     }
 
-    public String getCursoId() {
-        return cursoId;
+    public Curso getCurso() {
+        return curso;
     }
 
-    public void setCursoId(String cursoId) {
-        this.cursoId = cursoId;
+    public void setCurso(Curso curso) {
+        this.curso = curso;
     }
 
-    public String getProfessorId() {
-        return professorId;
+    public Professor getProfessor() {
+        return professor;
     }
 
-    public void setProfessorId(String professorId) {
-        this.professorId = professorId;
+    public void setProfessor(Professor professor) {
+        this.professor = professor;
     }
 
     @Override

@@ -1,13 +1,39 @@
 package br.pucminas.matriculas.modelo;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "usuarios")
+@Inheritance(strategy = InheritanceType.JOINED)
 public class Usuario {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
+
+    @Column(nullable = false, unique = true)
     private String login;
+
+    @JsonIgnore
+    @Column(nullable = false)
     private String senha;
+
+    @Column(nullable = false)
     private String nome;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private Perfil perfil;
 
     public Usuario() {
+    }
+
+    public Usuario(String login, String senha, String nome, Perfil perfil) {
+        this.login = login;
+        this.senha = senha;
+        this.nome = nome;
+        this.perfil = perfil;
     }
 
     public Usuario(String id, String login, String senha, String nome, Perfil perfil) {
@@ -19,7 +45,7 @@ public class Usuario {
     }
 
     public boolean autenticar(String senhaInformada) {
-        return senha != null && senha.equals(senhaInformada);
+        return this.senha != null && this.senha.equals(senhaInformada);
     }
 
     public String getId() {
