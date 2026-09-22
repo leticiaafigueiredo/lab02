@@ -1,4 +1,4 @@
-# Sistema de Matrículas Web — Sprint 2
+# Sistema de Matrículas Web
 
 > **Pontifícia Universidade Católica de Minas Gerais (PUC Minas)**  
 > **Curso:** Engenharia de Software  
