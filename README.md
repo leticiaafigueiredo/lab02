@@ -24,9 +24,9 @@ O **Sistema de Matrículas** é uma solução completa para a gestão e informat
 - **Professores:**
   - Acessam o sistema para consultar quais alunos estão matriculados em cada uma das disciplinas que lecionam.
 - **Sistema de Cobranças:**
-  - Notificado automaticamente a cada inscrição de aluno no semestre, registrando logs de cobrança e auditoria financeira persistida.
-- **Persistência em Disco:**
-  - Banco de dados relacional baseado em arquivo (`./data/matriculasdb.mv.db`) com JPA/Hibernate e arquivo de log de auditoria (`./data/cobrancas.log`), preservando o estado entre reinicializações.
+  - Notificado automaticamente a cada inscrição e cancelamento de aluno no semestre, registrando logs de cobrança e auditoria financeira persistida.
+- **Persistência em Disco e Docker:**
+  - Banco de dados relacional baseado em arquivo (`./data/matriculasdb.mv.db`) com JPA/Hibernate e arquivo de log de auditoria (`./data/cobrancas.log`), preservando o estado entre reinicializações e contêineres Docker.
 
 ---
 
@@ -38,6 +38,7 @@ O **Sistema de Matrículas** é uma solução completa para a gestão e informat
 graph TD
     classDef actorStyle fill:#1e293b,stroke:#0f172a,stroke-width:2px,color:#fff;
     classDef useCaseStyle fill:#f8fafc,stroke:#334155,stroke-width:1.5px,color:#0f172a;
+    classDef externalStyle fill:#e2e8f0,stroke:#64748b,stroke-width:1.5px,stroke-dasharray: 4 4,color:#0f172a;
 
     Aluno(("Aluno")):::actorStyle
     Professor(("Professor")):::actorStyle
@@ -45,39 +46,181 @@ graph TD
     Cobranca(("Sistema de Cobranças")):::actorStyle
 
     subgraph Sistema de Matrículas
-        UC01(["Efetuar Login no Sistema"]):::useCaseStyle
-        UC02(["Realizar Matrícula em Disciplina (Obrigatória / Optativa)"]):::useCaseStyle
-        UC03(["Cancelar Matrícula em Disciplina"]):::useCaseStyle
-        UC04(["Consultar Disciplinas Matriculadas"]):::useCaseStyle
-        UC05(["Consultar Turmas e Lista de Alunos Inscritos"]):::useCaseStyle
-        UC06(["Gerenciar Cursos, Disciplinas, Professores e Alunos"]):::useCaseStyle
-        UC07(["Gerar Currículo e Ofertas do Semestre"]):::useCaseStyle
-        UC08(["Abrir / Fechar Período de Matrículas"]):::useCaseStyle
-        UC09(["Encerrar Período e Aplicar Regra de Quórum (≥ 3 alunos)"]):::useCaseStyle
-        UC10(["Notificar Inscrição para Faturamento"]):::useCaseStyle
+        UC01(["UC01 - Autenticar-se no Sistema"]):::useCaseStyle
+        UC02(["UC02 - Manter Cursos"]):::useCaseStyle
+        UC03(["UC03 - Manter Disciplinas"]):::useCaseStyle
+        UC04(["UC04 - Manter Professores"]):::useCaseStyle
+        UC05(["UC05 - Manter Alunos"]):::useCaseStyle
+        UC06(["UC06 - Gerar Currículo e Ofertas do Semestre"]):::useCaseStyle
+        UC07(["UC07 - Matricular-se em Disciplinas"]):::useCaseStyle
+        UC08(["UC08 - Cancelar Matrícula"]):::useCaseStyle
+        UC09(["UC09 - Consultar Próprias Matrículas"]):::useCaseStyle
+        UC10(["UC10 - Consultar Alunos por Disciplina"]):::useCaseStyle
+        UC11(["UC11 - Encerrar Período e Aplicar Quórum"]):::useCaseStyle
+        UC12(["UC12 - Notificar Sistema de Cobranças"]):::externalStyle
+        UC13(["UC13 - Validar Janela do Período"]):::externalStyle
+        UC14(["UC14 - Controlar Limite de Vagas (Máx 60)"]):::externalStyle
     end
 
+    %% Acessos Aluno
     Aluno --> UC01
-    Aluno --> UC02
-    Aluno --> UC03
-    Aluno --> UC04
+    Aluno --> UC07
+    Aluno --> UC08
+    Aluno --> UC09
 
+    %% Acessos Professor
     Professor --> UC01
-    Professor --> UC05
+    Professor --> UC10
 
+    %% Acessos Secretaria
     Secretaria --> UC01
+    Secretaria --> UC02
+    Secretaria --> UC03
+    Secretaria --> UC04
+    Secretaria --> UC05
     Secretaria --> UC06
-    Secretaria --> UC07
-    Secretaria --> UC08
-    Secretaria --> UC09
+    Secretaria --> UC11
 
-    UC02 -.->|<<include>>| UC10
-    UC10 --> Cobranca
+    %% Relacionamentos de Inclusão
+    UC07 -.->|«include»| UC13
+    UC07 -.->|«include»| UC14
+    UC07 -.->|«include»| UC12
+    UC08 -.->|«include»| UC13
+    UC08 -.->|«include»| UC12
+    UC11 -.->|«include»| UC12
+
+    %% Notificações externas
+    UC12 --> Cobranca
 ```
 
 ---
 
-### 2.2 Histórias de Usuário (User Stories)
+### 2.2 Diagrama de Classes Estrutural (UML)
+
+```mermaid
+classDiagram
+    direction TB
+
+    class Perfil {
+        <<enumeration>>
+        SECRETARIA
+        PROFESSOR
+        ALUNO
+    }
+
+    class StatusOferta {
+        <<enumeration>>
+        ABERTA
+        VAGAS_ENCERRADAS
+        ATIVA
+        CANCELADA
+    }
+
+    class TipoMatricula {
+        <<enumeration>>
+        OBRIGATORIA
+        OPTATIVA
+    }
+
+    class Usuario {
+        -String id
+        -String login
+        -String senha
+        -String nome
+        -Perfil perfil
+        +autenticar(senha) boolean
+        +getId() String
+        +getLogin() String
+        +getNome() String
+        +getPerfil() Perfil
+    }
+
+    class Aluno {
+        -String ra
+        +getRa() String
+        +setRa(ra) void
+    }
+
+    class Professor {
+        -String departamento
+        -String titulacao
+        +getDepartamento() String
+        +getTitulacao() String
+    }
+
+    class Curso {
+        -String id
+        -String nome
+        -int creditos
+        -List~Disciplina~ disciplinas
+        +associarDisciplina(d) void
+        +removerDisciplina(d) void
+    }
+
+    class Disciplina {
+        -String id
+        -String codigo
+        -String nome
+        -Curso curso
+        -Professor professor
+        +int MINIMO_ALUNOS = 3
+        +int MAXIMO_ALUNOS = 60
+        +getCodigo() String
+        +getNome() String
+    }
+
+    class OfertaDisciplina {
+        -String id
+        -String semestre
+        -Disciplina disciplina
+        -StatusOferta status
+        -int maxVagas = 60
+        -List~Matricula~ matriculas
+        +getVagasOcupadas() int
+        +temVagas() boolean
+        +estaAberta() boolean
+        +adicionarMatricula(m) void
+        +removerMatricula(m) void
+    }
+
+    class Matricula {
+        -String id
+        -Aluno aluno
+        -OfertaDisciplina oferta
+        -TipoMatricula tipo
+        -LocalDateTime dataHora
+        +getAluno() Aluno
+        +getOferta() OfertaDisciplina
+        +getTipo() TipoMatricula
+        +getDataHora() LocalDateTime
+    }
+
+    class PeriodoMatriculas {
+        -String id
+        -String semestre
+        -boolean aberto
+        +isAberto() boolean
+        +setAberto(aberto) void
+        +getSemestre() String
+    }
+
+    Usuario <|-- Aluno : herança
+    Usuario <|-- Professor : herança
+    Usuario --> Perfil : possui
+
+    Curso "1" *-- "0..*" Disciplina : constituído por
+    Professor "1" <-- "0..*" Disciplina : leciona
+    Disciplina "1" <-- "0..*" OfertaDisciplina : ofertada em
+    OfertaDisciplina --> StatusOferta : estado
+
+    Aluno "1" <-- "0..*" Matricula : realiza
+    OfertaDisciplina "1" <-- "0..*" Matricula : contém
+    Matricula --> TipoMatricula : modalidade
+```
+
+---
+
+### 2.3 Histórias de Usuário (User Stories)
 
 #### **US01 — Autenticação de Usuários**
 - **Como** Usuário do sistema (Secretaria, Professor ou Aluno),
@@ -150,114 +293,6 @@ graph TD
 
 ---
 
-### 2.3 Diagrama de Classes Estrutural (UML)
-
-```mermaid
-classDiagram
-    class Perfil {
-        <<enumeration>>
-        SECRETARIA
-        PROFESSOR
-        ALUNO
-    }
-
-    class StatusOferta {
-        <<enumeration>>
-        ABERTA
-        VAGAS_ENCERRADAS
-        ATIVA
-        CANCELADA
-    }
-
-    class TipoMatricula {
-        <<enumeration>>
-        OBRIGATORIA
-        OPTATIVA
-    }
-
-    class Usuario {
-        -String id
-        -String login
-        -String senha
-        -String nome
-        -Perfil perfil
-        +autenticar(senha) boolean
-    }
-
-    class Aluno {
-        -String ra
-        +getRa() String
-        +setRa(ra) void
-    }
-
-    class Professor {
-        -String departamento
-        -String titulacao
-        +getDepartamento() String
-        +getTitulacao() String
-    }
-
-    class Curso {
-        -String id
-        -String nome
-        -int creditos
-        -List~Disciplina~ disciplinas
-        +associarDisciplina(d) void
-    }
-
-    class Disciplina {
-        -String id
-        -String codigo
-        -String nome
-        -Curso curso
-        -Professor professor
-        +int MINIMO_ALUNOS = 3
-        +int MAXIMO_ALUNOS = 60
-    }
-
-    class OfertaDisciplina {
-        -String id
-        -String semestre
-        -Disciplina disciplina
-        -StatusOferta status
-        -int maxVagas = 60
-        -List~Matricula~ matriculas
-        +temVagas() boolean
-        +estaAberta() boolean
-    }
-
-    class Matricula {
-        -String id
-        -Aluno aluno
-        -OfertaDisciplina oferta
-        -TipoMatricula tipo
-        -LocalDateTime dataHora
-    }
-
-    class PeriodoMatriculas {
-        -String id
-        -String semestre
-        -boolean aberto
-        +isAberto() boolean
-        +setAberto(aberto) void
-    }
-
-    Usuario <|-- Aluno : herança
-    Usuario <|-- Professor : herança
-    Usuario --> Perfil : possui
-
-    Curso "1" *-- "0..*" Disciplina : constituído por
-    Professor "1" <-- "0..*" Disciplina : leciona
-    Disciplina "1" <-- "0..*" OfertaDisciplina : ofertada em
-    OfertaDisciplina --> StatusOferta : estado
-
-    Aluno "1" <-- "0..*" Matricula : realiza
-    OfertaDisciplina "1" <-- "0..*" Matricula : contém
-    Matricula --> TipoMatricula : modalidade
-```
-
----
-
 ## 3. Tecnologias Utilizadas
 
 ### Backend
@@ -280,6 +315,11 @@ classDiagram
 - **Axios** (com interceptor JWT)
 - **React Router DOM v7**
 
+### DevOps & Contêineres
+- **Docker & Docker Compose**
+- **Nginx (Alpine):** Servidor web para o frontend com reverse proxy para o backend.
+- **Eclipse Temurin 21 JRE (Alpine):** Runtime enxuto para o container Spring Boot.
+
 ---
 
 ## 4. Persistência de Dados e Auditoria
@@ -288,7 +328,7 @@ O sistema adota persistência contínua em disco em duas frentes:
 
 1. **Banco de Dados Relacional (`./data/matriculasdb.mv.db`):**
    - Configurado via `jdbc:h2:file:./data/matriculasdb;DB_CLOSE_DELAY=-1;AUTO_SERVER=TRUE`.
-   - As alterações feitas na aplicação (novos cadastros de cursos, professores, alunos, matrículas e períodos) persistem no arquivo local mesmo após o encerramento ou reinício da aplicação.
+   - As alterações feitas na aplicação (novos cadastros de cursos, professores, alunos, matrículas e períodos) persistem no arquivo local mesmo após o encerramento ou reinício da aplicação e dos contêineres.
    - O `DatabaseSeeder` verifica a existência prévia de registros antes de popular a base inicial.
 2. **Log de Cobrança e Auditoria (`./data/cobrancas.log`):**
    - Registro em formato estruturado a cada matrícula confirmada e cancelada, contendo timestamp, RA, login, nome, disciplina e modalidade.
@@ -297,52 +337,47 @@ O sistema adota persistência contínua em disco em duas frentes:
 
 ## 5. Como Executar o Projeto
 
-### Pré-requisitos
-- **Java JDK 21+** instalado e configurado no terminal.
-- **Apache Maven 3.8+** instalado.
-- **Node.js 18+** e **npm** instalados.
+### Opção A: Execução com Docker (Recomendado)
+
+O projeto conta com ambiente completo em contêineres via Docker Compose.
+
+```bash
+docker compose up --build
+```
+
+- **Frontend (Web):** `http://localhost:3000`
+- **Backend (API REST):** `http://localhost:8080`
+- **H2 Console:** `http://localhost:8080/h2-console`
+- **Volume de Dados:** Os dados do banco e logs são montados em `./data` na raiz do projeto.
 
 ---
 
-### Passo 1: Iniciar o Backend (Spring Boot)
+### Opção B: Execução Manual (Local)
 
-Na raiz do projeto (`lab02/`):
+#### Pré-requisitos
+- **Java JDK 21+** e **Maven 3.8+**
+- **Node.js 18+** e **npm**
 
+#### Passo 1: Iniciar o Backend
 ```bash
 mvn spring-boot:run
 ```
+Disponível em `http://localhost:8080`.
 
-- A API REST estará disponível em: `http://localhost:8080`
-- O Console Web do Banco H2 estará disponível em: `http://localhost:8080/h2-console`
-  - **JDBC URL:** `jdbc:h2:file:./data/matriculasdb`
-  - **User:** `sa`
-  - **Password:** *(em branco)*
-
----
-
-### Passo 2: Iniciar o Frontend (React + Vite)
-
-Em outro terminal, acesse a pasta `frontend/`:
-
+#### Passo 2: Iniciar o Frontend
+Em outro terminal:
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
+Disponível em `http://localhost:5173`.
 
-- A aplicação Web estará disponível no navegador em: `http://localhost:5173`
-
----
-
-### Passo 3: Executar a Suíte de Testes Automatizados
-
-Na raiz do projeto:
-
+#### Passo 3: Executar Testes Automatizados
 ```bash
 mvn test
 ```
-
-> A suíte executa 15 testes automatizados cobrindo autenticação, dashboard, regras de limite de matrícula (4 obrigatórias / 2 optativas), quórum de turmas, lotação máxima de 60 alunos e gestão da secretaria (cursos, professores, alunos e currículo).
+Executa 15 testes unitários e de integração cobrindo regras de negócio, limites, quórum e cadastros.
 
 ---
 
@@ -397,11 +432,17 @@ O banco é inicializado automaticamente com as seguintes contas:
 
 ```
 lab02/
+├── Dockerfile                            # Dockerfile multi-stage do Backend Spring Boot
+├── docker-compose.yml                    # Orquestração de containers (backend + frontend)
 ├── pom.xml                               # Configurações do Maven e dependências Spring Boot
 ├── README.md                             # Documentação do projeto, diagramas e histórias de usuário
 ├── data/
 │   ├── matriculasdb.mv.db                # Banco de dados relacional H2 persistido em arquivo
 │   └── cobrancas.log                     # Arquivo de auditoria do sistema de cobranças
+├── docs/                                 # Documentação de modelagem UML (Casos de Uso, Classes, User Stories)
+│   ├── diagrama-casos-de-uso.md
+│   ├── diagrama-de-classes.md
+│   └── historias-de-usuario.md
 ├── src/
 │   ├── main/
 │   │   ├── java/br/pucminas/matriculas/
@@ -417,10 +458,12 @@ lab02/
 │       ├── java/br/pucminas/matriculas/  # Testes automatizados (JUnit 5 + AssertJ)
 │       └── resources/                    # application.properties isolado para testes
 └── frontend/
+    ├── Dockerfile                        # Dockerfile multi-stage do Frontend React
+    ├── nginx.conf                        # Configuração do Nginx com reverse proxy para /api
     ├── package.json                      # Dependências Node.js
     ├── vite.config.ts                    # Configurações do Vite
     └── src/
-        ├── components/                   # Sidebar, Header, AppLayout, ProtectedRoute
+        ├── components/                   # Componentes de UI (Sidebar, Header, AppLayout, ProtectedRoute)
         ├── context/                      # Contexto de Autenticação (AuthContext)
         ├── pages/                        # Telas (Login, DashboardAluno, Matricula, Professor, Secretaria)
         ├── services/                     # Configuração Axios e cliente de API
