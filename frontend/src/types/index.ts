@@ -90,3 +90,34 @@ export interface Periodo {
   semestre: string;
   aberto: boolean;
 }
+
+export interface Curso {
+  id?: string;
+  nome: string;
+  creditos: number;
+}
+
+export interface Disciplina {
+  id?: string;
+  codigo: string;
+  nome: string;
+  cursoId: string;
+  cursoNome?: string;
+  professorId?: string;
+  professorNome?: string;
+}
+
+export interface ProfessorItem {
+  id?: string;
+  login: string;
+  nome: string;
+  departamento?: string;
+  titulacao?: string;
+}
+
+export interface AlunoItem {
+  id?: string;
+  login: string;
+  nome: string;
+  ra: string;
+}
